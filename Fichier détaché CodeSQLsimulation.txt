@@ -1,0 +1,327 @@
+--Issouf OUARMA
+--Data Scientist 
+
+/*
+########################################################################################################
+############       Création des tables dans l'ordre avec les contraintes   ##############################
+########################################################################################################
+*/
+/*
+CREER D'ABORD UNE BASE DE DONNEES VIDE
+Dans cette BASE DE DONNEES, Excécuter:
+*/
+
+CREATE TABLE Utilisateur(
+   UserNum VARCHAR(15),
+   Nom VARCHAR(50) NOT NULL,
+   Prenom VARCHAR(50) NOT NULL,
+   Statut VARCHAR(50) NOT NULL,
+   Tel VARCHAR(50),
+   PRIMARY KEY(UserNum)
+);
+
+CREATE TABLE Salle(
+   NumSalle VARCHAR(10),
+   Capac DOUBLE NOT NULL,
+   TypeSalle VARCHAR(50),
+   Localisation VARCHAR(50) NOT NULL,
+   PRIMARY KEY(NumSalle),
+   UNIQUE(Localisation)
+);
+CREATE TABLE Materiel(
+   MatNum VARCHAR(15),
+   DateAchat DATE NOT NULL,
+   DateFinGar DATE,
+   NumSalle VARCHAR(10),
+   PRIMARY KEY(MatNum),
+   FOREIGN KEY(NumSalle) REFERENCES Salle(NumSalle),
+   CONSTRAINT Garanti_Dates CHECK (DateAchat < DateFinGar)
+);
+
+
+CREATE TABLE DdeReservation(
+   NumRes INT AUTO_INCREMENT,
+   Email VARCHAR(50) NOT NULL,
+   DateRes DATETIME,
+   DateAnnulation DATETIME,
+   UserNum_Res VARCHAR(15) NOT NULL,
+   UserNum_Annul VARCHAR(15),
+   PRIMARY KEY(NumRes),
+   FOREIGN KEY(UserNum_Res) REFERENCES Utilisateur(UserNum),
+   FOREIGN KEY(UserNum_Annul) REFERENCES Utilisateur(UserNum),
+   CONSTRAINT AnnulRes_Dates CHECK (DateRes < DateAnnulation or DateAnnulation=''),
+   CONSTRAINT AnnulRes_User CHECK (UserNum_Res=UserNum_Annul)
+);
+
+
+CREATE TABLE ReserveSalle(
+   NumRes_SALL INT,
+   MotifRes VARCHAR(50) NOT NULL,
+   NombPart INT,
+   DatePerioResDebut DATETIME NOT NULL,
+   DatePerioResFin DATETIME NOT NULL,
+   NumSalle VARCHAR(10) NOT NULL,
+   PRIMARY KEY(NumRes_SALL),
+   FOREIGN KEY(NumRes_SALL) REFERENCES DdeReservation(NumRes),
+   FOREIGN KEY(NumSalle) REFERENCES Salle(NumSalle),
+   CONSTRAINT SalleRes_Dates CHECK (DatePerioResDebut < DatePerioResFin ),
+   CHECK (NumRes_SALL=NumRes)
+);
+
+CREATE TABLE ReserveMateriel(
+   NumRes_MAT INT,
+   MatType VARCHAR(50) NOT NULL,
+   DatePerioResFin DATETIME,
+   DatePerioResDebut DATETIME,
+   MatNum VARCHAR(15) NOT NULL,
+   NumRes_SALL INT,
+   PRIMARY KEY(NumRes_MAT),
+   FOREIGN KEY(NumRes_MAT) REFERENCES DdeReservation(NumRes),
+   FOREIGN KEY(MatNum) REFERENCES Materiel(MatNum),
+   FOREIGN KEY(NumRes_SALL) REFERENCES ReserveSalle(NumRes_SALL),
+   CONSTRAINT MATRes_Dates CHECK (DatePerioResDebut < DatePerioResFin ),
+   CHECK (NumRes_MAT=NumRes)
+);
+
+CREATE TABLE RetraitMateriel(
+   NumRes_MAT INT,
+   NoEmprunt INT,
+   DateEmprunt DATETIME NOT NULL,
+   MatNum VARCHAR(15) NOT NULL,
+   NumSalle VARCHAR(10) NOT NULL,
+   UserNum VARCHAR(15) NOT NULL,
+   PRIMARY KEY(NumRes_MAT, NoEmprunt),
+   UNIQUE(NumRes_MAT),
+   FOREIGN KEY(NumRes_MAT) REFERENCES ReserveMateriel(NumRes_MAT),
+   FOREIGN KEY(MatNum) REFERENCES Materiel(MatNum),
+   FOREIGN KEY(NumSalle) REFERENCES Salle(NumSalle),
+   FOREIGN KEY(UserNum) REFERENCES Utilisateur(UserNum),
+   CONSTRAINT RetMATRes_Dates CHECK (DatePerioResDebut < DateEmprunt )
+);
+
+CREATE TABLE RetourEmprunt(
+   NumRes_MAT INT,
+   NoEmprunt INT,
+   NoRetour INT,
+   DateRetour DATETIME NOT NULL,
+   PRIMARY KEY(NumRes_MAT, NoEmprunt, NoRetour),
+   UNIQUE(NumRes_MAT, NoEmprunt),
+   FOREIGN KEY(NumRes_MAT, NoEmprunt) REFERENCES RetraitMateriel(NumRes_MAT, NoEmprunt)
+);
+
+/*
+#########################################################################################
+################   Insertions de tuples #################################################
+#########################################################################################
+*/
+
+/*
+# Les utilisateurs
+*/
+
+INSERT INTO utilisateur (`UserNum`, `Nom`, `Prenom`, `Statut`, `Tel`) 
+VALUES ('E255300', 'DebonEspoir', 'Alice', 'Etudiant', '+33 606060606'), 
+('P308240', 'Grand', 'Amid', 'Enseignant', '+33 600020301'), 
+('A928642', 'Rimma', 'DuBois', 'Personnel', '+33 703060606'), 
+('E5671352', 'Reine', 'Deschamps', 'Etudiant', '+33 607060206'), 
+('E12984098', 'Etalon', 'Duroi', 'Etudiant', '+33 607080606'), 
+('P3267549', 'Soleil', 'Davenir', 'Enseignant', '+33 616260600'), 
+('A22450912', 'Lumiere', 'DuJardin', 'Personnel', '+33 608061626'), 
+('E985621830', 'Martin', 'DeMartine', 'Etudiant', '+33 703060201'), 
+('E67891425036', 'DeLouest', 'Minna', 'Etudiant', '+33 706060405'), 
+('P7638910437', 'UnPeu', 'UnPeuEtBeaucoup', 'Enseignant', '+33 709060709');
+
+/*
+# Les salles
+*/
+
+INSERT INTO salle (`NumSalle`, `Capac`, `TypeSalle`, `Localisation`) 
+VALUES ('C33', '70', 'Salle de Cours', '-39.7742, 86.8570'), 
+('R25', '15', 'Salle de réunion', '-88.5825, 78.7793'), 
+('B06', '5', 'Bureau', '-59.2192, -151.5606'), 
+('R18', '30', 'Salle de réunion', '8.1014, 108.1258'), 
+('B12', '3', 'Bureau', '19.9272, 123.8492');
+
+/*
+# Les matériels
+*/
+
+INSERT INTO materiel (`MatNum`, `DateAchat`, `DateFinGar`, `NumSalle`) 
+VALUES ('VP05', '2021-09-01', '2022-03-31', 'B06'), 
+('T25', '2021-11-25', '2022-04-15', 'B12'), 
+('O12', '2022-01-16', '2023-07-15', 'B12'), 
+('O08', '2021-05-10', '2022-12-25', 'B06'), 
+('VP10', '2020-09-19', '2022-03-13', 'B12');
+
+/*
+# Les demandes de réservation
+*/
+
+INSERT INTO ddereservation (`NumRes`, `Email`, `DateRes`, `DateAnnulation`, `UserNum_Res`, `UserNum_Annul`) 
+VALUES ('1', 'E255@eg.fr', '2022-01-04 09:30:00', NULL, 'E255300', 'E255300'), 
+('2', 'E12@eg.bf', '2022-01-25 10:30:00', NULL, 'E12984098', 'E12984098');
+
+INSERT INTO ddereservation (`NumRes`, `Email`, `DateRes`, `DateAnnulation`, `UserNum_Res`, `UserNum_Annul`) 
+VALUES ('4', 'P32@eg.ue', '2022-01-25 10:30:00', NULL, 'P3267549', 'P3267549');
+INSERT INTO ddereservation (`NumRes`, `Email`, `DateRes`, `DateAnnulation`, `UserNum_Res`, `UserNum_Annul`) 
+VALUES ('5', 'P32@eg.ue', '2022-01-25 10:32:00', NULL, 'P3267549', 'P3267549');
+
+INSERT INTO ddereservation (`NumRes`, `Email`, `DateRes`, `DateAnnulation`, `UserNum_Res`, `UserNum_Annul`) 
+VALUES ('6', 'E98@eg.fr', '2022-02-20 08:30:00', NULL, 'E985621830', 'E985621830');
+INSERT INTO ddereservation (`NumRes`, `Email`, `DateRes`, `DateAnnulation`, `UserNum_Res`, `UserNum_Annul`) 
+VALUES ('7', 'E98@eg.fr', '2022-02-20 08:31:50', NULL, 'E985621830', 'E985621830');
+INSERT INTO ddereservation (`NumRes`, `Email`, `DateRes`, `DateAnnulation`, `UserNum_Res`, `UserNum_Annul`) 
+VALUES ('3', 'A22@eg.fr', '2022-01-25 10:30:00', NULL, 'A22450912', 'A22450912');
+
+/*
+# Les demandes spécifiques aux matériels
+*/
+
+INSERT INTO reservemateriel (`NumRes_MAT`, `MatType`, `DatePerioResDebut`,`DatePerioResFin`, `MatNum`, `NumRes_SALL`) 
+VALUES ('1', 'Ordinateur', '2022-02-01 08:30:00', '2022-02-14 17:00:00', 'O08', NULL), 
+('2', 'Ordinateur', '2022-02-20 08:30:00', '2022-02-28 15:15:00', 'O12', NULL);
+
+/*
+# Les demandes spécifiques aux salles
+*/
+
+INSERT INTO reservesalle (`NumRes_SALL`, `MotifRes`, `NombPart`, `DatePerioResDebut`, `DatePerioResFin`, `NumSalle`) 
+VALUES ('4', 'Cours Droit du numérique', '20', '2022-02-25 08:30:00', '2022-03-04 17:00:00', 'C33'), 
+('6', 'Préparation de l''Oral d''un concours', '10', '2022-02-25 09:00:00', '2022-02-28 13:30:00', 'R25');
+
+/*
+# Demandes dépendantes (Réserver d'abord la salle)
+*/
+
+INSERT INTO reservemateriel (`NumRes_MAT`, `MatType`, `DatePerioResDebut`,`DatePerioResFin`,  `MatNum`, `NumRes_SALL`) 
+VALUES ('5', 'Vidéo-Projecteur', '2022-02-25 15:30:00', '2022-03-02 10:30:00', 'VP05', '4'), 
+('7', 'Vidéo-Projecteur', '2022-02-25 09:00:00', '2022-02-25 17:30:00', 'VP10', '6');
+
+/*
+# Les emprunts effectifs
+*/
+
+INSERT INTO retraitmateriel (`NumRes_MAT`, `NoEmprunt`, `DateEmprunt`, `MatNum`, `NumSalle`, `UserNum`) 
+VALUES ('1', '4', '2022-02-01 08:45:00', 'O08', 'B06', 'E255300'), 
+('2', '10', '2022-02-20 08:30:00', 'O12', 'B12', 'E12984098');
+INSERT INTO retraitmateriel (`NumRes_MAT`, `NoEmprunt`, `DateEmprunt`, `MatNum`, `NumSalle`, `UserNum`) 
+VALUES ('5', '8', '2022-02-25 09:00:00', 'VP05', 'B06', 'P3267549');
+
+/*
+# Les retours de matériels
+*/
+
+INSERT INTO retouremprunt (`NumRes_MAT`, `NoEmprunt`, `NoRetour`, `DateRetour`) VALUES ('1', '4', '8', '2022-02-13 17:00:00');
+
+/*
+#########################################################################################################################
+#########################     Requêtes    ###############################################################################
+#########################################################################################################################
+*/
+
+/*
+######################### Matériels en retard
+*/
+/*
+Logique/conditions: Matériels dont la date de fin  de réservation est dépassée, qui ont été effectivement retirés mais qui n'ont pas été retournés.
+*/
+
+SELECT MatNum, NumRes_MAT
+FROM reservemateriel
+WHERE DatePerioResFin < STR_TO_DATE('2022-02-25 00:00:00', '%Y-%m-%d %T')
+AND NumRes_MAT IN (
+SELECT retraitmateriel.NumRes_MAT 
+FROM retraitmateriel
+WHERE retraitmateriel.NumRes_MAT NOT IN (
+SELECT retouremprunt.NumRes_MAT
+FROM retraitmateriel Inner Join retouremprunt
+WHERE retraitmateriel.NoEmprunt=retouremprunt.NoEmprunt and retraitmateriel.NumRes_MAT=retouremprunt.NumRes_MAT)
+)
+
+/*
+#################Liste Matériels disponibles à ce jour.
+*/
+/*
+Logique/conditions: un matériel est disponible s’il a été réservé et retourné ou s’il n’a pas été réservé.Matériel n'étant pas en cours de réservation ou étant  retourné avant terme 
+(on peut exclure aussi le matériel en retard mais la requête proposée ne tient pas compte de cela. Pour prendre en compte,
+il suffit de combiner avec la requête donnant le matériel en retard par l'opération d'exclusion).
+*/
+
+SELECT * FROM `materiel` 
+	WHERE `MatNum` NOT IN (SELECT `MatNum` FROM `reservemateriel` WHERE `DatePerioResFin` < CURRENT_DATE()) 
+	OR `MatNum` IN(SELECT MatNum FROM `materiel` WHERE `MatNum` 
+												IN( SELECT `MatNum` FROM `reservemateriel`,`retouremprunt` 
+															WHERE reservemateriel.DatePerioResFin > CURRENT_DATE () and retouremprunt.DateRetour < reservemateriel.DatePerioResFin ))
+
+
+
+	
+
+
+/*
+#################La dernière personne à avoir emprunté l'ordinateur O08
+*/
+/*
+Logique: Trouver la dernière date de retrait du matériel (O08) 
+Puis retrouver toutes les informations liées.
+
+Variante:
+La dernière personne ayant réservé un matériel 
+est celle qui à une date de début de réservation la plus récente pour ce matériel 
+si c’est la date d’effet qui est recherchée. 
+Si c’est  la date de la réalisation de la demande qui est recherchée alors c’est celle avec une dateRes la plus récente
+*/
+
+SELECT *
+FROM Utilisateur Join DdeReservation ON ddereservation.UserNum_Res=Utilisateur.UserNum Join  reservemateriel ON reservemateriel.NumRes_MAT=DdeReservation.NumRes Join retraitmateriel  ON retraitmateriel.NumRes_MAT=reservemateriel.NumRes_MAT 
+WHERE DateEmprunt=(SELECT MAX(DateEmprunt) FROM retraitmateriel WHERE retraitmateriel.Matnum='O08')
+
+/*
+################Information sur la réservation de la salle de réunion R25
+*/
+/*
+Logique/conditions: A partir du numéro de la salle, trouver toutes les informations liées
+*/
+
+SELECT *
+FROM utilisateur,reservesalle, ddereservation 
+WHERE NumSalle='R25'
+AND reservesalle.NumRes_SALL= ddereservation.NumRes
+AND utilisateur.UserNum = ddereservation.UserNum_Res
+
+/*
+################Information sur la réservation du matériel VP10
+*/
+/*
+Logique/conditions: A partir du numéro de du materiel, trouver toutes les informations liées
+*/
+
+SELECT *
+FROM utilisateur,reservemateriel, ddereservation 
+WHERE MatNum='VP10'
+AND reservemateriel.NumRes_MAT= ddereservation.NumRes
+AND utilisateur.UserNum = ddereservation.UserNum_Res
+
+/*
+############## Réservation dépendante d'une salle
+*/
+
+/*
+Logique/conditions: Une réservation de matériel est dépendante, s’il y a un numéro de réservation de salle qui lui est associé.
+*/
+
+SELECT * 
+FROM `reservemateriel` 
+WHERE `NumRes_SALL` IS NOT NULL
+
+/*
+################Annulation d'une demande de réservation. 
+*/
+/*
+Logique/conditions: Modifier ou mettre à jour la date d'annulation avec les bonnes références sur la réservation 
+et sur l'utilisateur
+*/
+
+UPDATE ddereservation
+SET DateAnnulation= STR_TO_DATE('2022-02-25 08:35:00','%Y-%m-%d %T') # ou CURRENT_DATE()
+WHERE NumRes='7' AND UserNum_Annul= 'E985621830'
