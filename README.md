@@ -1,7 +1,7 @@
-# D-p-t-Projet-SGBD-SQL
+# Projet-Système de gestion de base de données(SGBD)-SQL
 Rapport de travail pour la proposition d'une solution de gestion de données pour une application
 
-Ce projet se base sur l'interview réalisé avec le client pour proposer une solution relative à ses objectifs.
+Ce projet se base sur l'interview réalisée avec le client pour proposer une solution relative à ses objectifs.
 
 Pour ce faire, le travail 
 - Analyse l'interview
